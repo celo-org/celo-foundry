@@ -24,14 +24,12 @@ contract PrecompileHandler is Precompiles {
     bool exists;
   }
 
-  mapping(address => mapping(bytes32 => Mock)) private mockedCalls;
+  mapping(address => mapping(bytes => Mock)) private mockedCalls;
   bytes private _empty;
   Mock private successMock = Mock(true, _empty, true);
   Mock private revertMock = Mock(true, _empty, true);
 
   constructor() {
-    console2.log("precompile handler");
-
     _vm.etch(TRANSFER, proxyTo(TRANSFER_SIG));
     _vm.label(TRANSFER, "TRANSFER");
 
@@ -82,42 +80,42 @@ contract PrecompileHandler is Precompiles {
     debug = debug_;
   }
 
-  function mockSuccess(address prec, bytes32 callHash) public {
+  function mockSuccess(address prec, bytes memory callHash) public {
     setMock(prec, callHash, successMock);
 
     if (debug) {
       console2.log("Mock success");
       console2.log(prec);
-      console2.logBytes32(callHash);
+      console2.logBytes(callHash);
     }
   }
 
-  function mockRevert(address prec, bytes32 callHash) public {
+  function mockRevert(address prec, bytes memory callHash) public {
     setMock(prec, callHash, revertMock);
 
     if (debug) {
       console2.log("Mock revert");
       console2.log(prec);
-      console2.logBytes32(callHash);
+      console2.logBytes(callHash);
     }
   }
 
-  function mockReturn(address prec, bytes32 callHash, bytes memory returnData) public {
+  function mockReturn(address prec, bytes memory callHash, bytes memory returnData) public {
     setMock(prec, callHash, Mock(true, returnData, true));
 
     if (debug) {
       console2.log("Mock success with data");
       console2.log(prec);
-      console2.logBytes32(callHash);
+      console2.logBytes(callHash);
       console2.logBytes(returnData);
     }
   }
 
-  function clearMock(address prec, bytes32 callHash) public {
+  function clearMock(address prec, bytes memory callHash) public {
     delete mockedCalls[prec][callHash];
   }
 
-  function setMock(address prec, bytes32 callHash, Mock memory mock) internal {
+  function setMock(address prec, bytes memory callHash, Mock memory mock) internal {
     require(
       prec >= GET_VERIFIED_SEAL_BITMAP && 
       prec <= TRANSFER,
@@ -128,7 +126,6 @@ contract PrecompileHandler is Precompiles {
   }
 
   function catchAll() public view {
-    console2.log("catch all");
     bytes memory cd;
     assembly {
       cd := mload(0x40)
@@ -139,7 +136,7 @@ contract PrecompileHandler is Precompiles {
     }
 
     bytes32 cdh = keccak256(cd);
-    Mock memory mock = mockedCalls[msg.sender][cdh];
+    Mock memory mock = mockedCalls[msg.sender][cd];
 
     if (mock.exists == false) {
       console2.log(msg.sender);
@@ -162,7 +159,6 @@ contract PrecompileHandler is Precompiles {
   }
 
   function proxyTo(bytes4 sig) internal view returns (bytes memory) {
-    console2.log("in proxy to");
     address prec = address(this);
     bytes memory ptr;
 
