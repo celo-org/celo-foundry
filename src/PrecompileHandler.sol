@@ -30,6 +30,8 @@ contract PrecompileHandler is Precompiles {
   Mock private revertMock = Mock(true, _empty, true);
 
   constructor() {
+    console2.log("precompile handler");
+
     _vm.etch(TRANSFER, proxyTo(TRANSFER_SIG));
     _vm.label(TRANSFER, "TRANSFER");
 
@@ -63,7 +65,11 @@ contract PrecompileHandler is Precompiles {
   }
 
   function transfer(address from, address to, uint256 amount) public returns (bool) {
-    _vm.deal(from, from.balance - amount);
+    if (from != address(0)) { 
+      // skip minting
+      _vm.deal(from, from.balance - amount);
+    }
+
     _vm.deal(to, to.balance + amount);
     return true;
   }
@@ -122,6 +128,7 @@ contract PrecompileHandler is Precompiles {
   }
 
   function catchAll() public view {
+    console2.log("catch all");
     bytes memory cd;
     assembly {
       cd := mload(0x40)
@@ -155,6 +162,7 @@ contract PrecompileHandler is Precompiles {
   }
 
   function proxyTo(bytes4 sig) internal view returns (bytes memory) {
+    console2.log("in proxy to");
     address prec = address(this);
     bytes memory ptr;
 
